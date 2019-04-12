@@ -1,0 +1,18 @@
+clear
+
+a=0.2-0.8i;
+b=0.4+0.4i;
+c=0.4+0.4i;
+d=0.8-0.2i;
+D=a*d-b*c;
+
+alpha=log(D)/2i %+pi
+delta=log((-b*d)/(a*c))/2i;
+beta=log(-c/b*exp(i*delta))/i
+gamma=log((2*a*d/D-1)+(2*a*c/D*exp(i*delta))*i)/i
+delta
+
+%alpha=-pi/4; beta=-pi/2; gamma=0; delta=0;
+
+[exp(i*(alpha-beta/2-delta/2))*cos(gamma/2) -exp(i*(alpha-beta/2+delta/2))*sin(gamma/2);
+ exp(i*(alpha+beta/2-delta/2))*sin(gamma/2) exp(i*(alpha+beta/2+delta/2))*cos(gamma/2)]-[a b; c d] %check fidelity
