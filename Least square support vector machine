@@ -1,0 +1,49 @@
+%Training set
+T=[1 3 -1; 2 7 -1; 4 5 -1; 2 1 1; 5 1 1; 6 2 1];    %each row: x1, x2, y
+
+%LSSVM
+g=1;
+[n,m]=size(T);
+Z=zeros(n, m-1);    %n: total data  m-1: data dim
+for j=1:n
+   Z(j,:)=T(j,1:m-1)*T(j,m);
+end
+A=[0 -T(:,m).'; T(:,m) Z*Z.'+eye(n)*(1/g)];
+% O=zeros(n,n);
+% for j=1:n
+%     for k=1:n
+%         O(j,k)=T(j,m)*T(k,m)*T(j,1:m-1)*T(k,1:m-1).';
+%     end
+% end
+% A=[0 -T(:,m).'; T(:,m) O+eye(n)*(1/g)];
+
+v=zeros(n+1,1);
+for j=2:n+1
+    v(j)=1;
+end
+B=inv(A)*v;
+res=[Z.'*B(2:n+1,1); B(1)] %\vec{w}, b
+
+%plot
+x = linspace(0, 10);		% 在 0 到 2*pi 間，等分取 100 個點  
+y = (-res(1)/res(2))*x-res(3)/res(2);			% 計算 x 的正弦函數值
+
+C1=zeros(n,m-1);
+C2=zeros(n,m-1);
+for j=1:n
+    if T(j,m)==1
+        C1(j,:)=T(j,1:m-1);
+    else C2(j,:)=T(j,1:m-1);
+    end
+end
+
+plot(x,y,C1(:,1), C1(:,2),'g*',C2(:,1), C2(:,2),'rX');			% 進行二維平面描點作圖
+grid on;
+
+error=0;
+for j=1:n
+    error=error+sign(res(1)*T(j,1)+res(2)*T(j,2)+res(3));
+end
+error_rate=error/n
+
+clear j;
