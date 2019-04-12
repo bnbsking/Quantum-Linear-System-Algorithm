@@ -1,0 +1,311 @@
+clear
+
+%A0=[1 2; 1 -1]/sqrt(5); b0=[-1; 2]/sqrt(5); %3.27%
+
+%A0=[1 2; -1 -2]; b0=[2; -2]; %29.29%
+
+%A0=[1 1 1; 1 1 -1; 1 0 1]; b0=[3; 0; 2];
+
+%A0=[1 1; 1 -1; 2 -1]; b0=[2; 0 ; 1]; %6.11%
+
+T=[1 3 -1; 2 7 -1; 4 5 -1; 2 1 1; 5 1 1; 6 2 1];    %each row: x1, x2, y
+g=1;
+[nt,mt]=size(T);
+Z=zeros(nt, mt-1);    %n: total data  m-1: data dim
+for j=1:nt
+   Z(j,:)=T(j,1:mt-1)*T(j,mt);
+end
+A0=[0 -T(:,mt).'; T(:,mt) Z*Z.'+eye(nt)*(1/g)];
+b0=zeros(nt+1,1);
+for j=2:nt+1
+    b0(j)=1;
+end
+
+test=[2 5 -1; 3 4 -1; 5 6 -1; 3 1 1; 5 3 1; 6 6 1];
+[nte,mte]=size(test);
+
+t=2; %4 0miss
+check=[0 0 0]; %Matrix factorization, singular value of A, eigenvalue of W
+%% Adjust size to 2^n, adjust to Hermitian
+r=rank(A0);
+[m0,n0]=size(A0);
+adj1=0;
+adj2=0;
+
+if ishermitian(A0)==0
+    adj1=1;
+    A1=[zeros(m0) A0; conj(A0.') zeros(n0)];
+    b1=[b0; zeros(n0,1)];
+else A1=A0;
+       b1=b0;
+end
+n1=size(A1,1); %Hermitian with size n1
+
+if log(n1)/log(2) < ceil(log(n1)/log(2))
+    adj2=1;
+    n=2^(ceil(log(n1)/log(2)));
+    A=[A1 zeros(n1,n-n1); zeros(n-n1,n1) eye(n-n1)];
+    b=[b1; zeros(n-n1,1)];
+else
+    A=A1;
+    b=b1;
+    n=n1;
+end %power of 2 dimension
+
+clear A1 b1
+%% F-norm, vector, M, N, W
+
+f=0;                   
+for j=1:n
+    for k=1:n
+        f=f+conj(A(j,k))*A(j,k);
+    end
+end
+f=sqrt(f); %Frobenius norm of A
+
+af=zeros(n,1);
+for j=1:n
+    af(j,1)=norm(A(j,:)); 
+end %create af vector
+
+B=eye(n); %create standard basis of A
+M=zeros(n*n,n);
+for j=1:n
+    if af(j) ~= 0 %prevent zero division
+        M(:,j)=[kron(B(:,j),conj(A(j,:).'))]/af(j);
+    end
+end %create M
+N=zeros(n*n,n);
+for j=1:n
+    N(:,j)=[kron(af,B(:,j))]/f;
+end %create N
+W=(2*M*conj(M.')-eye(n^2))*(2*N*conj(N.')-eye(n^2));
+
+[P0,D0]=eig(W); %W's eigenvalue: rank(A0) types of (a+-bi) each repeat 4 times
+D=round(D0*10^6)*10^(-6); %round to 6 bits
+P=round(P0*10^6)*10^(-6); %round to 6 bits
+[U0,S0,V0]=svd(A); %A's singular value: rank(A0) types each repeat 2 times
+S=round(S0*10^6)*10^(-6); %round to 6 bits
+U=round(U0*10^6)*10^(-6); %round to 6 bits
+V=round(V0*10^6)*10^(-6); %round to 6 bits
+
+clear B af P0 D0 S0 U0 V0
+%% Check factorization, singular value, eigenvalue
+%%+collect singular value and non-trivial sungular value  
+
+if check(1)==1
+     Anew=M.'*N*f 
+end %check factorization
+ 
+sv0=zeros(1,n);
+for j=1:n
+    sv0(j)=S(j,j); 
+end %collect singular value as row vector with size n
+
+if check(2)==1
+sv1=zeros(1,n);
+for j=1:n
+    sv1(j)=conj(M*U(:,j)).'*(N*V(:,j))*f;  
+end
+check_sv=[sv0; sv1] 
+end %check singular value
+
+global top
+top=1;
+for j=1:n^2
+    if D(j,j)~=1 %& D(j,j)~=-1
+        eg0(top,1)=D(j,j); %dynamic memory
+        top=top+1;
+    end
+end
+[temp,id]=unique(eg0); %collect non-trivial eigenvalues and its index
+eg0=temp; 
+s=size(eg0,1); %number of non-trivial eigenvalues
+%a+-bi eigenvalue correspond to same singular value
+ 
+if check(3)==1
+ theta=zeros(s,1); phi=zeros(s,1);
+ for j=1:s
+     theta(j,1)=acos(conj(M*U(:,j)).'*(N*V(:,j)))*2;
+     phi(j,1)=theta(j,1)/(2*pi);
+ end
+%phi %theta
+check_eg=[eg0.'; (exp(i*theta)).']
+end
+
+clear Anew check_sv check_eg check
+clear sv1 temp theta phi
+clear N M  S top
+%
+%% Quantum phase estimation, readout singular value, answer 
+I=eye(2);
+H=[1/sqrt(2) 1/sqrt(2); 1/sqrt(2) -1/sqrt(2)];
+
+svalue=zeros(t+1,n); %1st_row:accuracy  2nd_row...:estimate
+svalue(1,:)=sv0;
+clear sv0
+
+solution=zeros(t+1,n0); %1st_row:accuracy  2nd_row...:estimate
+solution(1,:)=(pinv(A0)*b0).';
+error=zeros(t,1);
+
+%QPE
+for ti=t:t
+    Hs=1;
+    for j=1:ti
+        Hs=kron(Hs,H);
+    end 
+    Hs=kron(Hs,eye(n^2)); %Many parallel Hardmard gate
+    QC=eye(2^ti*n^2);
+    for j=0:ti-1
+        IU=1; ID=1;
+        for k=1:ti-j-1
+            IU=kron(IU,I); %upper identity
+        end
+        for k=1:j
+            ID=kron(ID,I); %down identity
+        end
+        QC=QC*kron(IU,blkdiag(eye(2^j*n^2),kron(ID,W^(2^j))));
+    end %Control W gate
+    o=exp(-2*pi*i/2^ti);
+    QF=zeros(2^ti,2^ti);
+    for j=1:2^ti
+        for k=1:2^ti
+            QF(j,k)=o^((j-1)*(k-1));
+        end
+    end
+    QF=(1/sqrt(2^ti))*kron(QF,eye(n^2)); %QFT
+    QPE=QF*QC*Hs; %create QPE
+    sQPE=size(QPE,1); %size of QPE
+        
+    up=[1; 0];
+    for j=1:ti-1
+        up=kron(up,[1; 0]);
+    end % create upper input (1st register)
+    input=zeros(n^2*2^ti,s); output=input;
+    for j=1:s
+        input(:,j)=kron(up,P(:,id(j)));
+        output(:,j)=QPE*input(:,j);
+    end
+  
+    %readout QSVE
+    close=zeros(2^ti,s); %closeness of phase in t-qubit
+    B=eye(2^ti,2^ti); %create standard basis of t-qubit
+    for j=1:s
+        for k=1:2^ti
+            close(k,j)=norm(output(:,j)-kron(B(:,k),P(:,id(j))));
+        end
+    end
+    [temp,esd]=min(close); % min of each column, min at what place
+    esd=esd-1;
+    qsve=abs(cos(esd/2^ti*2*pi/2)*f);
+    temp=zeros(1,n);
+    for j=1:s
+        temp(1,j)=qsve(1,j);
+    end
+    qsve=sort(temp,'descend');
+    qsve=(round(qsve*10^6)*10^-6);
+    svalue(1+ti,:)=qsve; %collect estimate singular value in 1+ti^th row 
+
+    %answer
+    pinS=zeros(n);
+    for j=1:n
+        if qsve(j)~=0
+            pinS(j,j)=1/qsve(j);
+        else pinS(j,j)=1; %ch
+        end
+    end %estimate A+
+    pinA=V*pinS*conj(U.');
+    temp=pinA*b; %x in max dimension
+    
+    if adj2==1
+        x=zeros(n1,0);
+        for j=1:n1
+            x(j,1)=temp(j);
+        end
+    else
+        x=temp;
+    end %reverse dimension 2
+    
+    if adj1==1
+        x0=zeros(n0,1);
+        for j=m0+1:n1;
+            x0(j-m0,1)=x(j,1);
+        end
+    else
+        x0=x;
+    end %reverse dimension 1
+    
+    solution(ti+1,:)=x0;
+    error0=norm(solution(1,:)-solution(ti+1,:))/norm(solution(1,:));
+    error0=round(error0*10^6)*10^-6;
+    error(ti,:)=error0;
+
+    finish=ti
+ end
+
+ clear I H Hs QC IU ID QF o QPE up
+ clear input output B
+ clear pinS pinA close qsve temp error0 adj1 adj2  eg0 id esd f  
+ clear A A0 b0 m0 n0 n1 x n W b  V U P D
+% 
+ 
+%svalue
+%solution
+error
+
+%% LSSVM
+
+res=[Z.'*x0(2:nt+1,1); x0(1)] %\vec{w}, b
+clear Z x0
+
+%plot
+x = linspace(0, 10);		% 在 0 到 2*pi 間，等分取 100 個點  
+y = (-res(1)/res(2))*x-res(3)/res(2);			% 計算 x 的正弦函數值
+
+C1=zeros(nt,mt-1);
+C2=zeros(nt,mt-1);
+for j=1:nt
+    if T(j,mt)==1
+        C1(j,:)=T(j,1:mt-1);
+    else C2(j,:)=T(j,1:mt-1);
+    end
+end
+
+C3=zeros(nte,mte-1);
+C4=zeros(nte,mte-1);
+for j=1:nte
+    if test(j,mte)==1
+        C3(j,:)=test(j,1:mte-1);
+    else C4(j,:)=test(j,1:mte-1);
+    end
+end
+
+plot(x,y,C1(:,1), C1(:,2),'gX',C2(:,1), C2(:,2),'rX',C3(:,1), C3(:,2),'g^',C4(:,1), C4(:,2),'r^');
+% 進行二維平面描點作圖)%
+grid on;
+
+bios=0;
+for j=1:nt
+    bios=bios+sign(res(1)*T(j,1)+res(2)*T(j,2)+res(3));
+end
+biosr=bios/nt
+
+global variance
+variance=0;
+for j=1:size(test,1)
+    if res(1)*test(j,1)+res(2)*test(j,2)+res(3)>0
+        if test(j,3)==-1
+            variance=variance+1;
+        end
+    else
+        if test(j,3)==1
+            variance=variance+1;
+        end
+    end
+end
+variancer=variance/nte
+
+clear bios variance
+clear  x y nt mt nte mte
+clear j k ti %x C1 C2 T test
