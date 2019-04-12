@@ -12,7 +12,5 @@ beta=log(-c/b*exp(i*delta))/i
 gamma=log((2*a*d/D-1)+(2*a*c/D*exp(i*delta))*i)/i
 delta
 
-%alpha=-pi/4; beta=-pi/2; gamma=0; delta=0;
-
 [exp(i*(alpha-beta/2-delta/2))*cos(gamma/2) -exp(i*(alpha-beta/2+delta/2))*sin(gamma/2);
  exp(i*(alpha+beta/2-delta/2))*sin(gamma/2) exp(i*(alpha+beta/2+delta/2))*cos(gamma/2)]-[a b; c d] %check fidelity
