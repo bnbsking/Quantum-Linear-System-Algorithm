@@ -1,0 +1,286 @@
+clear
+
+%2*2 rank=2
+A0=[1 2; 1 -1];
+b0=[-1; 2]; %3.27%
+%A0=[1 1; 2 -3];
+%b0=[2; -1]; %3.76
+% A0=[0 1; 3 -1];
+% b0=[0; -2]; %1.4
+
+%2*2 rank=1
+% A0=[1 1; 0 0];
+% b0=[1; 0]; %0%
+%A0=[1 2; -1 -2];
+%b0=[2; -2]; %30%*
+%A0=[0 1; 0 3];
+%b0=[1; 3]; %0%
+% A0=[1 1; 1 3];
+% b0=[1; 1]; %20%
+% A0=[0 1; 0 3];
+% b0=[0; 1];% 0%,2
+
+%3*3 rank=3
+% A0=[1 2 3; 0 1 2; 1 0 -1];
+% b0=[6; 3; 0]; %4%
+% A0=[1 2 3; 0 1 2; 1 0 -2];
+% b0=[0; -1; 2]; %8.6%
+% A0=[1 2 -1; 1 1 2; 3 0 -1];
+% b0=[1; -1; -2]; %20%
+
+% T=[1 3 -1; 2 7 -1; 4 5 -1; 2 1 1; 5 1 1; 6 2 1];
+% g=1;
+% [n0,m0]=size(T);
+% Z=zeros(n0, m0-1);    %n: total data  m-1: data dim
+% for j=1:n0
+%    Z(j,:)=T(j,1:m0-1)*T(j,m0);
+% end
+% A0=[0 -T(:,m0).'; T(:,m0) Z*Z.'+eye(n0)*(1/g)];
+% b0=zeros(n0+1,1);
+% for j=2:n0+1
+%     b0(j)=1;
+% end
+% clear T g n0 m0 Z
+
+t=6;
+check=[0 0 0]; %Matrix factorization, singular value of A, eigenvalue of W
+%% Adjust size to 2^n, adjust to Hermitian
+r=rank(A0);
+[a1,a2]=size(A0);
+n=max(size(A0)); 
+if log(n)/log(2) < ceil(log(n)/log(2))
+    n=2^(ceil(log(n)/log(2)));
+end
+A=zeros(n);
+for j=1:a1
+    for k=1:a2
+        A(j,k)=A0(j,k);
+    end
+end
+b=zeros(n,1);
+for j=1:size(b0,1)
+    b(j,1)=b0(j,1);
+end
+
+A=[zeros(n,n) A; conj(A.') zeros(n,n)];
+b=[b ; zeros(n,1)];
+n=n*2; %n: A size
+%% F-norm, vector, M, N, W
+B=eye(n); %create standard basis of A
+f=0;                   
+for j=1:n
+    for k=1:n
+        f=f+conj(A(j,k))*A(j,k);
+    end
+end
+f=sqrt(f); %Frobenius norm of A
+af=zeros(n,1);
+for j=1:n
+    af(j,1)=norm(A(j,:));  %create af vector
+end
+M=zeros(n*n,n);
+for j=1:n
+    if af(j) ~= 0 %prevent zero division
+        M(:,j)=[kron(B(:,j),conj(A(j,:).'))]/af(j);
+    end
+end
+N=zeros(n*n,n);
+for j=1:n
+    N(:,j)=[kron(af,B(:,j))]/f;
+end
+W=(2*M*conj(M.')-eye(n^2))*(2*N*conj(N.')-eye(n^2));
+
+[P0,D0]=eig(W); %W's eigenvalue: rank(A0) types of (a+-bi) each repeat 4 times
+D=round(D0*10^6)*10^(-6); %round to 6 bits
+P=round(P0*10^6)*10^(-6); %round to 6 bits
+[U0,S0,V0]=svd(A); %A's singular value: rank(A0) types each repeat 2 times
+S=round(S0*10^6)*10^(-6); %round to 6 bits
+U=round(U0*10^6)*10^(-6); %round to 6 bits
+V=round(V0*10^6)*10^(-6); %round to 6 bits
+
+clear B af P0 D0 S0 U0 V0
+%% Check factorization, singular value, eigenvalue
+%%+collect singular value and non-trivial sungular value  
+
+if check(1)==1
+    Anew=M.'*N*f %check factorization
+end
+
+ sv0=zeros(1,n);
+for j=1:n
+    sv0(j)=S(j,j); %collect singular value
+end
+
+if check(2)==1
+sv1=zeros(1,n);
+for j=1:n
+    sv1(j)=conj(M*U(:,j)).'*(N*V(:,j))*f;  
+end
+check_sv=[sv0; sv1] %check singular value
+end
+
+global top
+top=1;
+for j=1:n^2
+    if D(j,j)~=1
+        eg0(top,1)=D(j,j); %dynamic memory
+        top=top+1;
+    end
+end
+[temp,id]=unique(eg0); %collect non-trivial eigenvalue
+eg0=temp; %a+-bi eigenvalue -> singular value same, exclude 1 eigenvalue
+s=size(eg0,1); %
+
+if check(3)==1
+ theta=zeros(s,1); phi=zeros(s,1);
+ for j=1:s
+     theta(j,1)=acos(conj(M*U(:,j)).'*(N*V(:,j)))*2;
+     phi(j,1)=theta(j,1)/(2*pi);
+ end
+%phi
+%theta
+check_eg=[eg0.'; (exp(i*theta)).']
+end
+
+clear Anew check_sv check_eg check
+clear sv1 temp theta phi eg0
+clear M N S top D 
+%% Quantum phase estimation, readout singular value, answer 
+I=eye(2);
+H=[1/sqrt(2) 1/sqrt(2); 1/sqrt(2) -1/sqrt(2)];
+
+% t=2;    %estimate bit
+%SWAP=[1 0 0 0; 0 0 1 0; 0 1 0 0; 0 0 0 1];
+% Q1=kron(kron(H,H),eye(n^2));
+% Q2=kron(I,blkdiag(eye(n^2),W));
+% Q3=blkdiag(eye(n^2*2),kron(I,W*W));
+% Q4=kron(SWAP,eye(n^2));
+% Q5=kron(kron(I,H),eye(n^2));
+% Q6=kron(csg,eye(n^2));
+% Q7=kron(kron(H,I),eye(n^2));
+% QPE=Q7*Q6*Q5*Q4*Q3*Q2*Q1;
+
+% t=3;    %estimate bit
+% X=[0 1; 1 0];
+% csg=kron(I,[1 0; 0 0])+kron([1 0; 0 -i],[0 0; 0 1]);
+% tswap=[1 0 0 0 0 0 0 0; 0 0 0 0 1 0 0 0; 0 0 1 0 0 0 0 0; 0 0 0 0 0 0 1 0;
+%     0 1 0 0 0 0 0 0; 0 0 0 0 0 1 0 0; 0 0 0 1 0 0 0 0; 0 0 0 0 0 0 0 1];
+% ttg=kron(kron(I,I),[1 0; 0 0])+kron(kron([1 0; 0 (1-i)/sqrt(2)],I),[0 0; 0 1]);
+% Q1=kron(kron(H,kron(H,H)),eye(n^2));
+% Q2=kron(eye(4),blkdiag(eye(n^2),W));
+% Q3=kron(I,blkdiag(eye(n^2*2),kron(I,W*W)));
+% Q4=blkdiag(eye(n^2*4),kron(I,kron(I,W^4)));
+% Q5=kron(tswap,eye(n^2));
+% Q6=kron(kron(eye(4),H),eye(n^2));
+% Q7=kron(I,kron(csg,eye(n^2)));
+% Q8=kron(I,kron(kron(H,I),eye(n^2)));
+% Q9=kron(ttg,eye(n^2));
+% Q10=kron(kron(csg,I),eye(n^2));
+% Q11=kron(kron(H,eye(4)),eye(n^2));
+% QPE=Q11*Q10*Q9*Q8*Q7*Q6*Q5*Q4*Q3*Q2*Q1;
+
+svalue=zeros(t+1,n); %1st_row:accuracy  2nd_row...:estimate
+svalue(1,:)=sv0;
+clear sv0
+
+solution=zeros(t+1,a2); %1st_row:accuracy  2nd_row...:estimate
+solution(1,:)=(pinv(A0)*b0).';
+
+error=zeros(t,1);
+
+for ti=1:t
+
+%QPE
+Hs=1;
+for j=1:ti
+    Hs=kron(Hs,H);
+end
+Hs=kron(Hs,eye(n^2));
+QC=eye(2^ti*n^2);
+for j=0:ti-1
+    IU=1; ID=1;
+    for k=1:ti-j-1
+        IU=kron(IU,I);
+    end
+    for k=1:j
+        ID=kron(ID,I);
+    end
+    QC=QC*kron(IU,blkdiag(eye(2^j*n^2),kron(ID,W^(2^j))));
+end
+o=exp(-2*pi*i/2^ti);
+QF=zeros(2^ti,2^ti);
+for j=1:2^ti
+    for k=1:2^ti
+        QF(j,k)=o^((j-1)*(k-1));
+    end
+end
+QF=(1/sqrt(2^ti))*kron(QF,eye(n^2));
+QPE=QF*QC*Hs;
+sQPE=size(QPE,1);
+        
+up=[1; 0];
+for j=1:ti-1
+    up=kron(up,[1; 0]); %upper input
+end
+input=zeros(n^2*2^ti,s); output=input;
+ for j=1:s
+     input(:,j)=kron(up,P(:,id(j)));
+     output(:,j)=QPE*input(:,j);
+ end
+ 
+%readout QSVE
+close=zeros(2^ti,s); %closeness of t-qubit 
+B=eye(2^ti,2^ti); %create standard basis of t-qubit
+for j=1:s
+    for k=1:2^ti
+        close(k,j)=norm(output(:,j)-kron(B(:,k),P(:,id(j))));
+    end
+end
+[xx,esd]=min(close); % min of each column, min at what place
+esd=esd-1;
+qsve=abs(cos(esd/2^ti*2*pi/2)*f);
+temp=zeros(1,n);
+for j=1:s
+    temp(1,j)=qsve(1,j);
+end
+qsve=sort(temp,'descend');
+qsve=(round(qsve*10^6)*10^-6);
+svalue(1+ti,:)=qsve; %collect estimate singular value
+
+%answer
+pinS=zeros(n);
+for j=1:n
+    if qsve(j)~=0
+        pinS(j,j)=1/qsve(j);
+    %else pinS(j,j)=1/1.4319;
+    end
+end
+pinA=V*pinS*conj(U.');
+temp=pinA*b;
+solution(ti+1,:)=temp((n/2+1):(n/2+a2),1).';
+
+error0=norm(solution(1,:)-solution(ti+1,:))/norm(solution(1,:));
+error0=round(error0*10^6)*10^-6;
+error(ti,:)=error0;
+
+end
+
+ clear I H Hs QC IU ID QF o QPE up
+ clear xx close input output B
+ clear pinS pinA qsve temp error0 
+ clear a2 a1 A0 b0 V U P 
+ 
+%% Answer wrt accuracy bits and plot
+svalue
+solution
+error
+
+x=zeros(t,1);
+for j=1:t
+x(j)=j;
+end
+plot(x,error,'rX')
+grid on
+
+ clear j k ti x
+% %next task: normalize
