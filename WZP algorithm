@@ -1,0 +1,77 @@
+clear
+A=[2 1; 1 2];
+b=[1; 0];
+
+B=eye(2);
+af=[norm(A(1,:)); norm(A(2,:))];
+F=sqrt(A(1,1)^2+A(1,2)^2+A(2,1)^2+A(2,2)^2);     
+M=[kron(B(:,1),A(1,:).')/norm(A(1,:)) kron(B(:,2),A(2,:).')/norm(A(2,:))];
+N=[kron(af/F,B(:,1)) kron(af/F,B(:,2))];
+%M.'*N*f
+W=(2*M*M.'-eye(4))*(2*N*N.'-eye(4));
+[P,D]=eig(W);
+W=round(W*10^6)*10^-6;
+W_=W*W;
+f=af/F;
+clear B af M N
+
+H=[1/sqrt(2) 1/sqrt(2); 1/sqrt(2) -1/sqrt(2)];
+I=eye(2);
+I4=eye(4);
+CX=[1 0 0 0; 0 1 0 0; 0 0 0 1; 0 0 1 0];
+
+C=kron(kron(I,CX),I);
+CW0=kron(I,blkdiag(I4,W));
+CW1=kron(I,blkdiag(eye(6),[-0.6 0.8; 0.8 0.6]))*C*kron(I,blkdiag(eye(6),[0.6 0.8; 0.8 -0.6]));
+Q1=kron(I4,blkdiag(I,[0.8+0.2i 0.4-0.4i; 0.4-0.4i 0.2+0.8i]));
+Q2=kron(I4,blkdiag(I,[0.8-0.2i 0.4+0.4i; 0.4+0.4i 0.2-0.8i]));
+Q3=kron(I,blkdiag(I4,kron(I,[0.8+0.2i 0.4-0.4i; 0.4-0.4i 0.2+0.8i])));
+Q4=kron(I4,blkdiag(I,[0.2+0.8i 0.4-0.4i; 0.4-0.4i 0.8+0.2i]));
+Q5=kron(I4,blkdiag(I,[0.2-0.8i 0.4+0.4i; 0.4+0.4i 0.8-0.2i]));
+Q6=kron(I,blkdiag(I4,kron(I,[0.2+0.8i 0.4-0.4i; 0.4-0.4i 0.8+0.2i])));
+CW2=Q6*C*Q5*C*Q4*C*Q3*C*Q2*C*Q1; %Sucess
+
+C_=kron(blkdiag(I4,kron(I,[0 1; 1 0])),I);
+CW_0=blkdiag(eye(8),kron(I,W_));
+CW_1=blkdiag(eye(8),kron(I,blkdiag(I,[0.28 -0.96; 0.96 0.28])))*C_*blkdiag(eye(8),kron(I,blkdiag(I,[0.28 0.96; -0.96 0.28])))*C_;
+Q1_=kron(I4,blkdiag(I,[0.8 0.6; -0.6 0.8]));
+Q2_=kron(I4,blkdiag(I,[0.8 -0.6; 0.6 0.8]));
+Q3_=blkdiag(eye(8),kron(I4,[0.8 0.6; -0.6 0.8]));
+Q4_=kron(I4,blkdiag(I,[0.8 -0.6; 0.6 0.8]));
+Q5_=kron(I4,blkdiag(I,[0.8 0.6; -0.6 0.8]));
+Q6_=blkdiag(eye(8),kron(I4,[0.8 -0.6; 0.6 0.8]));
+CW_2=Q6_*C_*Q5_*C_*Q4_*C_*Q3_*C_*Q2_*C_*Q1_*C_; %Sucess
+
+QRAM=kron(kron(eye(8),H),I);
+MH=kron(kron(kron(H,H),I),I);
+QFT=0.5*kron([1 1 1 1; 1 -i -1 i; 1 -1 1 -1; 1 i -1 -i],I4);
+QPE=QFT*CW_2*CW2*MH;
+QPE=kron(I,QPE);
+
+ni=kron([1; 0; 0; 0; 0; 0; 0; 0],kron(f,b));
+ri=zeros(32,1);
+ri(1)=ni(1);  ri(2)=ni(17);  ri(3)=ni(9);  ri(4)=ni(25);
+ri(5)=ni(5);  ri(6)=ni(21); ri(7)=ni(13);  ri(8)=ni(29);
+ri(9)=ni(3);  ri(10)=ni(19);    ri(11)=ni(11); ri(12)=ni(27);
+ri(13)=ni(7); ri(14)=ni(23);    ri(15)=ni(15); ri(16)=ni(31);
+ri(17)=ni(2); ri(18)=ni(18); ri(19)=ni(10); ri(20)=ni(26);
+ri(21)=ni(6); ri(22)=ni(22); ri(23)=ni(14); ri(24)=ni(30);
+ri(25)=ni(4); ri(26)=ni(20); ri(27)=ni(12); ri(28)=ni(28);
+ri(29)=ni(8); ri(30)=ni(24); ri(31)=ni(16); ri(32)=ni(32);    
+
+no=kron(kron(eye(8),H),I)*conj(QPE).'*QRAM.'*QRAM*QPE*ni;
+ro=zeros(32,1);%
+ro(1)=no(1);  ro(2)=no(17);  ro(3)=no(9);  ro(4)=no(25);
+ro(5)=no(5);  ro(6)=no(21); ro(7)=no(13);  ro(8)=no(29);
+ro(9)=no(3);  ro(10)=no(19);    ro(11)=no(11); ro(12)=no(27);
+ro(13)=no(7); ro(14)=no(23);    ro(15)=no(15); ro(16)=no(31);
+ro(17)=no(2); ro(18)=no(18); ro(19)=no(10); ro(20)=no(26);
+ro(21)=no(6); ro(22)=no(22); ro(23)=no(14); ro(24)=no(30);
+ro(25)=no(4); ro(26)=no(20); ro(27)=no(12); ro(28)=no(28);
+ro(29)=no(8); ro(30)=no(24); ro(31)=no(16); ro(32)=no(32);
+ro
+
+clear X C H Xn Xp
+clear Q1 Q2 Q3 Q4 Q5 Q6 Q7
+
+
