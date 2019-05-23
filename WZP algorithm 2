@@ -1,0 +1,114 @@
+clear
+A=[2 1; 1 2];
+b=[1; 0];
+[P0,D0]=eig(A);
+%P0=[0.5257; -0.8507]; P1=[0.8507; 0.5207]; D=+-2.2361
+%x=0.6667 -0.3333,; norm x=0.8944, -0.4472
+
+B=eye(2);
+af=[norm(A(1,:)); norm(A(2,:))];
+F=sqrt(A(1,1)^2+A(1,2)^2+A(2,1)^2+A(2,2)^2);     
+M=[kron(B(:,1),A(1,:).')/norm(A(1,:)) kron(B(:,2),A(2,:).')/norm(A(2,:))];
+N=[kron(af/F,B(:,1)) kron(af/F,B(:,2))];
+%M.'*N*F
+W=(2*M*M.'-eye(4))*(2*N*N.'-eye(4))*exp(i*2*pi/3);%
+[P,D]=eig(W); %P unitary
+f=af/F;
+clear B
+ 
+H=[1/sqrt(2) 1/sqrt(2); 1/sqrt(2) -1/sqrt(2)];
+I=eye(2);
+I2=eye(4);
+I4=eye(16);
+I5=eye(32);
+I6=eye(64);
+
+%QRAM=kron(eye(8),kron(H,I)); %*0+eye(32)
+QFT=conj(0.5*[1 1 1 1; 1 i -1 -i; 1 -1 1 -1; 1 -i -1 i]).';
+S1=kron(I5,kron(H,kron(H,I2)));
+S2=kron(I6,blkdiag(I2,W));
+S3=kron(I5,blkdiag(eye(8),kron(I,W*W)));
+S4=kron(I5,kron(QFT,I2));
+QPE=S4*S3*S2*S1; %QPE is correct
+%Most similar phase: P1-00 P2-11 P3-01 P4-10
+clear QFT S1 S2 S3 S4
+
+q0=[1;0]; q1=[0;1];
+T00=kron(q0,kron(q1,kron(q1,kron(q0,kron(q0,q0)))))*(kron(q0,kron(q0,kron(q0,kron(q0,kron(q0,q0)))))).';
+T01=kron(q1,kron(q1,kron(q0,kron(q0,kron(q0,q1)))))*(kron(q0,kron(q0,kron(q0,kron(q0,kron(q0,q1)))))).';
+T10=kron(q1,kron(q0,kron(q1,kron(q1,kron(q1,q0)))))*(kron(q0,kron(q0,kron(q0,kron(q0,kron(q1,q0)))))).';
+T11=kron(q0,kron(q0,kron(q1,kron(q1,kron(q1,q1)))))*(kron(q0,kron(q0,kron(q0,kron(q0,kron(q1,q1)))))).';
+T=T00+T00.'+T01+T01.'+T10+T10.'+T11+T11.';
+for j=1:64
+    if j~=1 & j~=2 & j~=3 & j~=4 & j~=16 & j~=25 & j~=47 & j~=50
+        T(j,j)=1;
+    end
+end
+T=kron(I,kron(T,I2));
+clear T00 T01 T10 T11
+
+QSVE=conj(QPE.')*T*QPE;
+
+theta0110=2*asin(1/(2*0+1*1+0.5*1+0.25*0));
+theta1100=2*asin(1/(2*1+1*1+0.5*0+0.25*0));
+theta1010=2*asin(1/(2*1+1*0+0.5*1+0.25*0));
+theta0011=2*asin(1/(2*0+1*1+0.5*0+0.25*0));%maintain unitary
+
+R0110=[cos(theta0110/2) -sin(theta0110/2); sin(theta0110/2) cos(theta0110/2)];
+R1100=[cos(theta1100/2) -sin(theta1100/2); sin(theta1100/2) cos(theta1100/2)];
+R1010=[cos(theta1010/2) -sin(theta1010/2); sin(theta1010/2) cos(theta1010/2)];
+R0011=[cos(theta0011/2) -sin(theta0011/2); sin(theta0011/2) cos(theta0011/2)]; 
+
+R_0=kron(R0110-I,  kron(q0,kron(q1,kron(q1,q0)))*(kron(q0,kron(q1,kron(q1,q0)))).'  )+I5;
+R_1=kron(R1100-I,  kron(q1,kron(q1,kron(q0,q0)))*(kron(q1,kron(q1,kron(q0,q0)))).'  )+I5;
+R_2=kron(R1010-I,  kron(q1,kron(q0,kron(q1,q0)))*(kron(q1,kron(q0,kron(q1,q0)))).'  )+I5;
+R_3=kron(R0011-I,  kron(q0,kron(q0,kron(q1,q1)))*(kron(q0,kron(q0,kron(q1,q1)))).'  )+I5;
+
+R=kron(R_3*R_2*R_1*R_0,I4);
+%R= kron( kron(R0110,[1 0; 0 0])+kron(I,[0 0; 0 1]) , eye(128) );
+clear theta0110 theta1100 theta1010 theta0011 R0110 R1100 R1010 R0011 R_0 R_1 R_2 R_3
+
+Measure=kron([0 0; 0 1],eye(256));
+
+temp=1;
+for j=1:5
+    temp=kron(temp,q0);
+end
+input=kron(temp,kron(q0,kron(q0, [1;0;0;0] )));
+
+output=Measure*conj(QSVE.')*R*QSVE*input;
+output=output/norm(output);
+output(257:257+15)
+
+clear H I I2 I5 I6 O00 O01 O10 O11 
+clear R00 R01 R10 R11theta00 theta01 theta10 theta11
+clear j
+
+% 
+% ni=kron([1; 0; 0; 0; 0; 0; 0; 0],kron(f,b));
+% ri=zeros(32,1);
+% ri(1)=ni(1);  ri(2)=ni(17);  ri(3)=ni(9);  ri(4)=ni(25);
+% ri(5)=ni(5);  ri(6)=ni(21); ri(7)=ni(13);  ri(8)=ni(29);
+% ri(9)=ni(3);  ri(10)=ni(19);    ri(11)=ni(11); ri(12)=ni(27);
+% ri(13)=ni(7); ri(14)=ni(23);    ri(15)=ni(15); ri(16)=ni(31);
+% ri(17)=ni(2); ri(18)=ni(18); ri(19)=ni(10); ri(20)=ni(26);
+% ri(21)=ni(6); ri(22)=ni(22); ri(23)=ni(14); ri(24)=ni(30);
+% ri(25)=ni(4); ri(26)=ni(20); ri(27)=ni(12); ri(28)=ni(28);
+% ri(29)=ni(8); ri(30)=ni(24); ri(31)=ni(16); ri(32)=ni(32);    
+% 
+% no=kron(kron(eye(8),H),I)*conj(QPE).'*QRAM.'*QRAM*QPE*ni;
+% ro=zeros(32,1);%
+% ro(1)=no(1);  ro(2)=no(17);  ro(3)=no(9);  ro(4)=no(25);
+% ro(5)=no(5);  ro(6)=no(21); ro(7)=no(13);  ro(8)=no(29);
+% ro(9)=no(3);  ro(10)=no(19);    ro(11)=no(11); ro(12)=no(27);
+% ro(13)=no(7); ro(14)=no(23);    ro(15)=no(15); ro(16)=no(31);
+% ro(17)=no(2); ro(18)=no(18); ro(19)=no(10); ro(20)=no(26);
+% ro(21)=no(6); ro(22)=no(22); ro(23)=no(14); ro(24)=no(30);
+% ro(25)=no(4); ro(26)=no(20); ro(27)=no(12); ro(28)=no(28);
+% ro(29)=no(8); ro(30)=no(24); ro(31)=no(16); ro(32)=no(32);
+% ro
+
+% clear X C H Xn Xp
+% clear Q1 Q2 Q3 Q4 Q5 Q6 Q7
+
+
