@@ -1,16 +1,39 @@
 clear
 
-a=0.2-0.8i;
-b=0.4+0.4i;
-c=0.4+0.4i;
-d=0.8-0.2i;
+a=0.2372 - 0.7785i;
+b=0.2015 - 0.5450i;
+c=0.2505 - 0.5242i;
+d=-0.3932 + 0.7126i;
 D=a*d-b*c;
 
-alpha=log(D)/2i %+pi
-delta=log((-b*d)/(a*c))/2i;
-beta=log(-c/b*exp(i*delta))/i
-gamma=log((2*a*d/D-1)+(2*a*c/D*exp(i*delta))*i)/i
-delta
+if a==0
+    gamma=pi;
+    delta=0;
+    alpha=(-i/2)*(log(-b)+log(c));
+    beta=i*(log(-b)-log(c));
+elseif b==0
+    gamma=0;
+    delta=0;
+    alpha=(-i/2)*(log(a)+log(d))
+    beta=i*(log(a)-log(d));
+else
+    alpha=log(D)/2i;    alpha2=log(D)/2i+pi;%
+    delta=log((-b*d)/(a*c))/2i;
+    beta=log(-c/b*exp(i*delta))/i;
+    gamma=log((2*a*d/D-1)+(2*a*c/D*exp(i*delta))*i)/i;    
+end
 
-[exp(i*(alpha-beta/2-delta/2))*cos(gamma/2) -exp(i*(alpha-beta/2+delta/2))*sin(gamma/2);
- exp(i*(alpha+beta/2-delta/2))*sin(gamma/2) exp(i*(alpha+beta/2+delta/2))*cos(gamma/2)]-[a b; c d] %check fidelity
+[alpha beta gamma delta; alpha2 beta gamma delta]
+alpha=0.4; beta=0.15; gamma=1.24; delta=3.2;%
+
+A=[exp(i*(alpha-beta/2-delta/2))*cos(gamma/2) -exp(i*(alpha-beta/2+delta/2))*sin(gamma/2);
+ exp(i*(alpha+beta/2-delta/2))*sin(gamma/2) exp(i*(alpha+beta/2+delta/2))*cos(gamma/2)]-[a b; c d]
+
+B=[exp(i*(alpha2-beta/2-delta/2))*cos(gamma/2) -exp(i*(alpha2-beta/2+delta/2))*sin(gamma/2);
+ exp(i*(alpha2+beta/2-delta/2))*sin(gamma/2) exp(i*(alpha2+beta/2+delta/2))*cos(gamma/2)]-[a b; c d]
+
+%alpha=0; beta=pi-7; gamma=4; delta=-pi-5;
+%theta=2*acos(real(a));
+%     nx=-imag(b)/sin(theta/2);
+%     ny=-real(b)/sin(theta/2);
+%     nz=-imag(a)/sin(theta/2);
