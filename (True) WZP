@@ -1,5 +1,5 @@
-c.h(qr[4])
-c.h(qr[1]); c.h(qr[2]); c.h(qr[3]);
+c.h(qr[4]) #QRAM
+c.h(qr[1]); c.h(qr[2]); c.h(qr[3]); #H
 
 c.cu3(-1.2025,+2.1112,-1.0304,qr[4],qr[5])
 c.u1(+0.7854,qr[4])
@@ -23,12 +23,37 @@ c.cx(qr[3],qr[4]) #end CW
 c.ccx(qr[2],qr[4],qr[5])
 c.cu3(-2.5740,0,0,qr[2],qr[5])
 c.ccx(qr[2],qr[4],qr[5]) #end CW2
-
 c.cu3(2*pi,0,0,qr[1],qr[5])
 c.ccx(qr[1],qr[4],qr[5])
 c.cu3(1.1352,0,0,qr[1],qr[5])
-c.ccx(qr[1],qr[4],qr[5])
+c.ccx(qr[1],qr[4],qr[5]) #end CW4
 
+c.swap(qr[1],qr[3])
+c.h(qr[3])
+c.cu3(0,-pi/2,0,qr[3],qr[2])
+c.u1(-pi/4,qr[3])
+c.h(qr[2])
+c.cu3(0,-pi/4,0,qr[3],qr[1])
+c.u1(-pi/8,qr[3])
+c.cu3(0,-pi/2,0,qr[2],qr[1])
+c.u1(-pi/4,qr[2])
+c.h(qr[1])
 
+c.ry(0.4731375,qr[0])
+c.cx(qr[1],qr[0])
+c.ry(0.5805375,qr[0])
+c.cx(qr[2],qr[0])
+c.ry(-0.5440875,qr[0])
+c.cx(qr[1],qr[0])
+c.ry(0.1615125,qr[0])
+c.cx(qr[3],qr[0])
+c.ry(0.7847625,qr[0])
+c.cx(qr[1],qr[0])
+c.ry(-0.5440875,qr[0])
+c.cx(qr[2],qr[0])
+c.ry(-0.7414125,qr[0])
+c.cx(qr[1],qr[0])
+c.ry(0.4731375,qr[0])
+c.cx(qr[3],qr[0])
 
 c.draw(output='mpl')
