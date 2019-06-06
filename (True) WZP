@@ -1,3 +1,33 @@
+#WZP algorithm simulation by Bobo
+import math
+import numpy as np
+from numpy import linalg as LA
+from numpy.linalg import inv
+from math import pi
+from qiskit import QuantumCircuit as QCirc, ClassicalRegister as CReg, QuantumRegister as QReg, execute as exe
+from qiskit.tools.visualization import circuit_drawer as CDraw
+from qiskit.quantum_info import state_fidelity as SFad 
+from qiskit import BasicAer as BAer
+from qiskit.tools.visualization import matplotlib_circuit_drawer as drawer, qx_color_scheme
+#u3 or cu3 (theta,phi,lambda),    u3^H(theta,-lambda,-phi)
+
+A=np.array([ [2,1],[1,2] ])
+b=np.array([ [1],[0] ])
+A_1 = inv(A)
+x_real = A_1.dot(b)
+x_real = x_real / LA.norm(x_real)
+x_real = [round(x_real[0][0],8),round(x_real[1][0],8)]
+
+v=np.array([ b[0][0], b[1][0] ])
+v=v/LA.norm(v)
+print("initial state: ", v)
+
+qr = QReg(6)                                                #create 4 quantum register named qr
+c = QCirc(qr)                                            #create quantum circuit for qr and cr named c
+
+c.initialize(v,[qr[1]]) #reversed order
+
+
 c.h(qr[4]) #QRAM
 c.h(qr[1]); c.h(qr[2]); c.h(qr[3]); #H
 
@@ -57,3 +87,33 @@ c.ry(0.4731375,qr[0])
 c.cx(qr[3],qr[0])
 
 c.draw(output='mpl')
+
+
+
+
+Usim = BAer.get_backend('statevector_simulator')
+job = exe(c, Usim)
+X = job.result().get_statevector(c, decimals=3)
+print(X)
+
+#|1><1| projective measurement only half down indices remains.
+#(original order & index start from 1)
+
+x = np.array([X[2-1],X[34-1]])
+x = x / LA.norm(x)
+print("simulation answer: ", x)
+print("true answer: ", x_real)
+
+f=round((abs(x[0]*x_real[0]+x[1]*x_real[1]))**2,4)
+print("state fidelity: ",f)
+
+#backend = BAer.get_backend('unitary_simulator')
+#job2 = exe(c, backend)
+#Y=job2.result().get_unitary(c, decimals=4)
+#print(Y)
+
+#backend = BAer.get_backend('qasm_simulator')
+#job = exe(c, backend, shots=1024)
+#job.result().get_counts(c)
+
+
