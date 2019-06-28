@@ -1,0 +1,113 @@
+from qiskit import IBMQ
+
+MYAPI = 'c2f96471b495530069ed8e77665b06ac0c196caa7de2a3793a16474c9d7554d5a636605c04262805b6f62fd1584e325416914b10d819c85fbc4ecf532709d435'
+MYURL = 'https://q-console-api.mybluemix.net/api/Hubs/ibm-q-hub-ntu/Groups/ntu-internal/Projects/default'
+
+IBMQ.enable_account(MYAPI, MYURL)
+IBMQ.save_account(MYAPI, MYURL)
+IBMQ.load_accounts()
+print(IBMQ.backends())
+MyBackend = IBMQ.get_backend('ibmq_20_tokyo')
+print("\n Status of backend:", MyBackend.status )
+
+import qiskit
+qiskit.__qiskit_version__
+
+#HHL algorithm simulation by Bobo
+import math
+import numpy as np
+from numpy import linalg as LA
+from math import pi
+from qiskit import QuantumCircuit as QCirc, ClassicalRegister as CReg, QuantumRegister as QReg, execute as exe
+from qiskit.tools.visualization import circuit_drawer as CDraw
+from qiskit.quantum_info import state_fidelity as SFad 
+from qiskit import BasicAer as BAer
+#from qiskit.tools.visualization import matplotlib_circuit_drawer as drawer, qx_color_scheme
+
+A=np.array([ [pi,-pi/2],[-pi/2,pi] ])
+b=np.array([ [0.5547],[-0.83205] ])
+#expected output x=A^-1*b/norm(A^-1*b)=[0.2425,-0.9701]
+
+v=np.array([ b[0][0], b[1][0] ])
+v=v/LA.norm(v)
+print("initial state: ", v)
+
+qr = QReg(20)                                                #create 4 quantum register named qr
+cr = CReg(4)                                                 #create 4 classical register named cr
+c = QCirc(qr,cr)                                            #create quantum circuit for qr and cr named c
+
+c.initialize(v,[qr[17]]) #reversed order
+
+#0-12, 3-17, 1-11, 2-16
+c.h(qr[11])
+c.h(qr[16])
+c.cu3(pi,pi,0,qr[16],qr[17])
+c.cu3(2*pi,0,0,qr[11],qr[17])
+c.swap(qr[11],qr[16])
+c.h(qr[16])
+c.cu3(0,-pi/2,0,qr[16],qr[11])
+c.u1(-pi/4,qr[16])
+c.h(qr[11])
+
+c.cu3(2*math.asin(1/pi),0,0,qr[11],qr[12])
+c.cu3(2*math.asin(2/pi),0,0,qr[16],qr[12])
+th=2*math.asin(2/(3*pi))-2*math.asin(1/pi)-2*math.asin(2/pi)
+c.cu3(th/2,0,0,qr[11],qr[12])
+c.cx(qr[16],qr[11])
+c.cu3(-th/2,0,0,qr[11],qr[12])
+c.cx(qr[16],qr[11])
+c.cu3(th/2,0,0,qr[16],qr[12])
+
+c.h(qr[11])
+c.u1(pi/4,qr[16])
+c.cu3(0,pi/2,0,qr[16],qr[11])
+c.h(qr[16])
+c.swap(qr[11],qr[16])
+c.cu3(2*pi,0,0,qr[11],qr[17])
+c.cu3(pi,-pi,0,qr[16],qr[17])
+c.h(qr[11])
+c.h(qr[16])
+
+c.measure(qr[12],cr[0])
+c.measure(qr[11],cr[1])
+c.measure(qr[16],cr[2])
+c.measure(qr[17],cr[3])
+
+c.draw(output='mpl')
+
+from qiskit import compile
+qobj = compile(c, MyBackend, shots=1024)
+job = MyBackend.run(qobj)
+print(job.job_id())
+
+#job.result()
+#from qiskit import compile
+#qobj = compile(circ, backend=backend, shots=1024)
+#job = backend.run(qobj)
+#print(job.job_id())
+#|1><1| projective measurement only half down indices remains.
+#(original order & index start from 1)
+#x = np.array([X[2-1],X[10-1]])
+#x = x / LA.norm(x)
+#print("simulation answer: ", x)
+#print("true answer: ",  [0.2425,-0.9701])
+#backend = BAer.get_backend('qasm_simulator')
+#job = exe(c, backend, shots=1024)
+#job.result().get_counts(c)
+#X = job.result().get_statevector(c)
+#print(X)
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+x = ['0', '1']
+class_a = [0.0588, 0.9411]
+class_b = [0.5785, 0.4213]
+plt.bar(x, class_a, label="Ideal", align = "edge", width = -0.35)
+plt.bar(x, class_b, label="Real",align = "edge", width = +0.35)
+plt.legend(fontsize=20)
+
+plt.xticks(fontsize=20)
+plt.yticks(fontsize=20)
+plt.xlabel("State",fontsize=20)
+plt.ylabel("Probability",fontsize=20)
