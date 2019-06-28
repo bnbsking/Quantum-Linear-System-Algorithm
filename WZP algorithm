@@ -72,6 +72,6 @@ ro(29)=no(8); ro(30)=no(24); ro(31)=no(16); ro(32)=no(32);
 ro
 
 clear X C H Xn Xp
-clear Q1 Q2 Q3 Q4 Q5 Q6 Q7
+clear Q1 Q2 Q3 Q4 Q5 Q6 Q7 
 
 
