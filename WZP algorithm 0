@@ -37,7 +37,7 @@ b0=[-1; 2]; %3.27%
 % end
 % A0=[0 -T(:,m0).'; T(:,m0) Z*Z.'+eye(n0)*(1/g)];
 % b0=zeros(n0+1,1);
-% for j=2:n0+1
+% for j=2:n0+1 
 %     b0(j)=1;
 % end
 % clear T g n0 m0 Z
