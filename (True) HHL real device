@@ -36,7 +36,7 @@ qr = QReg(20)                                                #create 4 quantum r
 cr = CReg(4)                                                 #create 4 classical register named cr
 c = QCirc(qr,cr)                                            #create quantum circuit for qr and cr named c
 
-c.initialize(v,[qr[17]]) #reversed order
+c.initialize(v,[qr[17]]) #reversed order 
 
 #0-12, 3-17, 1-11, 2-16
 c.h(qr[11])
