@@ -1,0 +1,76 @@
+from qiskit import IBMQ #login and set backend need several seconds
+
+MYAPI = 'c2f96471b495530069ed8e77665b06ac0c196caa7de2a3793a16474c9d7554d5a636605c04262805b6f62fd1584e325416914b10d819c85fbc4ecf532709d435'
+MYURL = 'https://q-console-api.mybluemix.net/api/Hubs/ibm-q-hub-ntu/Groups/ntu-internal/Projects/default'
+
+IBMQ.enable_account(MYAPI, MYURL)
+IBMQ.save_account(MYAPI, MYURL)
+IBMQ.load_accounts()
+print(IBMQ.backends())
+MyBackend = IBMQ.get_backend('ibmq_20_tokyo')
+print("\n Status of backend:", MyBackend.status )
+
+import qiskit #qiskit version 0.10, new is better
+qiskit.__qiskit_version__
+
+import math
+import numpy as np
+from numpy import linalg as LA
+from math import pi
+from qiskit import QuantumCircuit as QCirc, ClassicalRegister as CReg, QuantumRegister as QReg, execute as exe
+from qiskit.tools.visualization import circuit_drawer as CDraw
+from qiskit.quantum_info import state_fidelity as SFad 
+from qiskit import BasicAer as BAer
+
+qr = QReg(20)                                              #create 20 quantum register named qr
+cr = CReg(3)                                                 #create 4 classical register named cr
+c = QCirc(qr,cr)                                            #create quantum circuit for qr and cr named c
+
+#c.initialize([1, 0],[qr[0]])                              #reversed order
+
+c.measure(qr[0],cr[0])    #single qubit no operation |0>
+
+c.h(qr[1])                           #two qubit Bell state (|00>+|11>)/(sqrt(2))
+c.cx(qr[1],qr[2])
+c.measure(qr[1],cr[1])
+c.measure(qr[2],cr[2])
+
+c.draw(output='mpl')
+
+from qiskit import compile
+qobj = compile(c, MyBackend, shots=1024)
+job = MyBackend.run(qobj)
+print(job.job_id())
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+#single qubit no operation |0>
+
+x = ['0', '1']
+class_a = [1, 0]                             #desired output probability
+class_b = [0.97168, 0.02832]   #real output probability                     #fill the result in IBM Q Experience
+plt.bar(x, class_a, label="Ideal", align = "edge", width = -0.35)
+plt.bar(x, class_b, label="Real",align = "edge", width = +0.35)
+plt.legend(fontsize=20)
+
+plt.xticks(fontsize=20)
+plt.yticks(fontsize=20)
+plt.xlabel("State",fontsize=20)
+plt.ylabel("Probability",fontsize=20)
+
+job.result().get_counts()
+
+#two qubit Bell state (|00>+|11>)/(sqrt(2))
+x = ['00', '01', '10', '11']
+class_a = [0.5, 0, 0, 0.5]                                                    #desired output probability
+class_b = [0.51367, 0.02441, 0.03027, 0.43164]        #real output probability                     #fill the result in IBM Q Experience
+plt.bar(x, class_a, label="Ideal", align = "edge", width = -0.35)
+plt.bar(x, class_b, label="Real",align = "edge", width = +0.35)
+plt.legend(fontsize=20)
+
+plt.xticks(fontsize=20)
+plt.yticks(fontsize=20)
+plt.xlabel("State",fontsize=20)
+plt.ylabel("Probability",fontsize=20)
+#get result in IBM Q Experience 
