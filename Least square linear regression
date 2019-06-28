@@ -15,3 +15,4 @@ y = res(1)+res(2)*x;
 
 plot(x,y,T(:,1),T(:,2),'rX');
 grid on;
+ 
