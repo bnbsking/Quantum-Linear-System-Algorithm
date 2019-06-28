@@ -1,0 +1,21 @@
+print(int("100",2))       #2->10
+print(bin(int("4",10))) #10->2
+
+import math
+
+n=16
+for i in range(n):
+    s=bin(int("{0}".format(i),10))    #10->2 with 0b
+    
+    t=""                                                #remove 0b
+    for j in range(len(s)-2): 
+        t=t+s[j+2]
+        
+    while len(t)<(math.log(n)/math.log(2)):  #supply 0 to constant bit
+        t="0"+t
+    
+    u=""                                               #reverse binary string
+    for j in range(len(t)-1,-1,-1):
+        u=u+t[j]
+    
+    print("{0} index to {1} index".format(i+1,int(u,2)+1))
