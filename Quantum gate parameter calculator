@@ -36,4 +36,4 @@ B=[exp(i*(alpha2-beta/2-delta/2))*cos(gamma/2) -exp(i*(alpha2-beta/2+delta/2))*s
 %theta=2*acos(real(a));
 %     nx=-imag(b)/sin(theta/2);
 %     ny=-real(b)/sin(theta/2);
-%     nz=-imag(a)/sin(theta/2);
+%     nz=-imag(a)/sin(theta/2); 
