@@ -1,4 +1,4 @@
-#HHL algorithm simulation by Bobo
+#HHL algorithm simulation by Bobo 
 import math
 import numpy as np
 from numpy import linalg as LA
