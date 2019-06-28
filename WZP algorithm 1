@@ -142,7 +142,7 @@ I=eye(2);
 H=[1/sqrt(2) 1/sqrt(2); 1/sqrt(2) -1/sqrt(2)];
 
 svalue=zeros(t+1,n); %1st_row:accuracy  2nd_row...:estimate
-svalue(1,:)=sv0;
+svalue(1,:)=sv0; 
 clear sv0
 
 solution=zeros(t+1,n0); %1st_row:accuracy  2nd_row...:estimate
