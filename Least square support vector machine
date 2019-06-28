@@ -37,6 +37,6 @@ error=0;
 for j=1:n
     error=error+sign(res(1)*T(j,1)+res(2)*T(j,2)+res(3));
 end
-error_rate=error/n
+error_rate=error/n 
 
 clear j;
