@@ -37,7 +37,7 @@ if ishermitian(A0)==0
     A1=[zeros(m0) A0; conj(A0.') zeros(n0)];
     b1=[b0; zeros(n0,1)];
 else A1=A0;
-       b1=b0;
+       b1=b0; 
 end
 n1=size(A1,1); %Hermitian with size n1
 
